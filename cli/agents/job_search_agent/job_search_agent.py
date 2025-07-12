@@ -9,9 +9,13 @@ import io
 import openai
 from genai_session.session import GenAISession
 from genai_session.utils.context import GenAIContext
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configuration
-OPENAI_API_KEY = "your-openai-api-key"  # Replace with your actual API key
+OPENAI_API_KEY = os.getenv('API_KEY') # Replace with your actual API key
 openai.api_key = OPENAI_API_KEY
 
 # Data structures for CV and job information
@@ -147,7 +151,7 @@ class ChatGPTService:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "You are an expert CV parser. Extract structured information from CV text and return only valid JSON."},
                     {"role": "user", "content": prompt}
@@ -367,6 +371,8 @@ class CVToolkit:
         try:
             # Extract text from PDF
             pdf_content = await self.extract_pdf_content(file_info)
+
+            print(pdf_content)
             
             # Parse CV data using ChatGPT
             cv_dict = await self.chatgpt_service.parse_cv_from_text(pdf_content)
@@ -519,7 +525,7 @@ session = GenAISession(jwt_token=AGENT_JWT)
 
 @session.bind(
     name="job_search_agent",
-    description="AI-powered job search assistant that helps with CV processing, job matching, and career optimization"
+    description="AI-powered job search assistant that helps with CV processing and analysis, Job posting parsing, Intelligent job matching, CV tailoring for specific roles, Career insights and recommendations"
 )
 async def job_search_agent(
     agent_context: GenAIContext,
@@ -535,14 +541,25 @@ async def job_search_agent(
     """
     
     try:
-        # Check for attached files
-        attached_files = getattr(agent_context, 'files', []) or []
+        print("job_search_agent")
+        
+        print(dir(agent_context))
+        print(dir(agent_context.files))
+        print(agent_context.request_id)
+        
+        print(user_input)
+        user_input = user_input.split(" ")
+        file_id = user_input[-1][:len(user_input[-1])-1]
+        print(file_id)
+        file = await agent_context.files.get_by_id(file_id)
+        
+        content = file.read()
+        file_info = {"content": content}
+        print(content)
         
         # Handle PDF CV uploads
-        if attached_files and any(file.get('name', '').lower().endswith('.pdf') for file in attached_files):
-            for file in attached_files:
-                if file.get('name', '').lower().endswith('.pdf'):
-                    return await cv_toolkit.process_cv_pdf(file)
+        if file:
+            return await cv_toolkit.process_cv_pdf(file_info)
         
         # The master agent will handle tool selection, so we provide simple responses
         # and let the master agent decide what to do
@@ -579,7 +596,7 @@ async def job_search_agent(
         """
     
     except Exception as e:
-        return f"❌ I encountered an error: {str(e)}. Please try again or contact support."
+        return f"❌ I encountered an error: {str(e)}"
 
 # Tool functions for master agent integration
 async def process_cv_pdf_tool(file_info: Dict) -> str:
