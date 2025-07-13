@@ -541,6 +541,9 @@ async def job_search_agent(
     """
     
     try:
+
+        # todo: Handle file uploaded with prompt
+        '''
         print("job_search_agent")
         
         print(dir(agent_context))
@@ -559,7 +562,7 @@ async def job_search_agent(
         
         # Handle PDF CV uploads
         if file:
-            return await cv_toolkit.process_cv_pdf(file_info)
+            return await cv_toolkit.process_cv_pdf(file_info)'''
         
         # The master agent will handle tool selection, so we provide simple responses
         # and let the master agent decide what to do
